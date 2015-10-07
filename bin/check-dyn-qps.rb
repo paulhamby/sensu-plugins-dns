@@ -80,10 +80,9 @@ class CheckDynQPS < Sensu::Plugin::Check::CLI
 
 
 	def run
-		#turn period into timestamp
-		if config[:period] = "day"
+		if config[:period] == "day"
 			start_ts = (Time.now - 86400).to_i
-		elsif config[:period] = "week"
+		elsif config[:period] == "week"
 			start_ts = (Time.now - 604800).to_i
 		else
 			unknown "Valid options for period are day or week"
@@ -92,12 +91,11 @@ class CheckDynQPS < Sensu::Plugin::Check::CLI
 		end_ts = (Time.now).to_i
 
 		url = URI.encode(config[:url])
-		puts url
 		begin
 			login_url = URI.parse(url) + "Session/"
 			headers = { "Content-Type" => 'application/json' }
 			http = Net::HTTP.new(login_url.host, login_url.port)
-			http.set_debug_output $stderr
+			#http.set_debug_output $stderr
 			http.use_ssl = true
 
 			session_data = { :customer_name => config[:customer], :user_name => config[:user], :password => config[:password] }
@@ -138,33 +136,30 @@ class CheckDynQPS < Sensu::Plugin::Check::CLI
 					#The data is in 300 second increments. Divide by 300 to get the amount of queries per second.
 					q=(q/300)
 					values.push(q)
-					puts q
 				end
 			end
 
 
 			values.shift
 			p = 0.95
-			#puts("95th percentile:",percentile(values,p))
 			percent = percentile(values,p)
 			puts percent
 
 			if percent >= config[:critical].to_i
 				percent = percent.to_s
-				critical "DynQPS is critical. QPS is #{$percent} of #{config[:critical]}"
+				critical "DynQPS is critical. QPS is #{percent} of #{config[:critical]}"
 			elsif percent >= config[:warning].to_i
 				percent = percent.to_s
-				warning "DynQPS is warning #{$percent} of #{config[:warning]}"
+				warning "DynQPS is warning #{percent} of #{config[:warning]}"
 			else
 				percent = percent.to_s
-				ok "DynQPS is ok #{$percent} of #{config[:warning]}"
+				ok "DynQPS is ok #{percent} of #{config[:warning]}"
 			end
 
 			# Logout
 			response = http.delete(login_url.path, headers)
 		end
-	rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
-	#rescue Exception => e
+	rescue SocketError, Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
 		critical "#{config[:url]} is not responding. #{e}"
 	end
 
