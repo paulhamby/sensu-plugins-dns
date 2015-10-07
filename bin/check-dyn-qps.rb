@@ -4,7 +4,8 @@
 #
 # DESCRIPTION:
 #   Hits the Dyn API to check the number of Queries Per Second and alerts
-#   if you exceed your commited rate
+#   if you exceed your commited rate.
+#   This is designed to be scheduled once per day, week and/or month
 #
 # OUTPUT:
 #   plain text
@@ -62,7 +63,7 @@ class CheckDynQPS < Sensu::Plugin::Check::CLI
 	option :period,
 		short: '-p',
 		long: '--period day|week',
-		description: 'Period of time to query. Options are: day, week',
+		description: 'Period of time to query. Options are: day, week, month',
 		required: true
 
 	option :critical,
@@ -90,10 +91,13 @@ class CheckDynQPS < Sensu::Plugin::Check::CLI
 			start_ts = (Time.now - 86400).to_i
 		elsif config[:period] == "week"
 			start_ts = (Time.now - 604800).to_i
+		elsif config[:period] == "month"
+			start_ts = (Time.now - 2592000).to_i
 		else
-			unknown "Valid options for period are day or week"
+			unknown "Valid options for period are day, week or month"
 		end
 		end_ts = (Time.now).to_i
+
 		url = URI.encode(config[:url])
 
 		auth_token = login(url)
@@ -180,6 +184,7 @@ class CheckDynQPS < Sensu::Plugin::Check::CLI
 		critical "#{config[:url]} is not responding. #{e}"
 	end
 
+	#borrowed from http://stackoverflow.com/a/11785414, thanks justin-ko!
 	def percentile(values, percentile)
 		values_sorted = values.sort
 		k = (percentile*(values_sorted.length-1)+1).floor - 1
