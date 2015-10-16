@@ -192,8 +192,6 @@ class CheckDynQPS < Sensu::Plugin::Check::CLI
                 return response
             elsif ["301", "302", "307"].include? response.code
                 redirected_url = response["location"]
-                puts("Redirected to #{redirected_url}")
-                puts("Retrying the request. This is try #{$try} of #{$retries}")
                 response = http.get(redirected_url, headers)
                 $try +=1
                 sleep 5
